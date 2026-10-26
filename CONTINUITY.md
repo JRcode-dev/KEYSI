@@ -1,7 +1,7 @@
 # KEYSI — Documento de Continuidad
 
-**Fecha:** 2026-10-25 (tercera pasada de auditoría)
-**Estado:** Frontend corregido y auditado. Lucky Gift completado con entrada manual y multiplicadores visibles. Backend NO conectado.
+**Fecha:** 2026-10-26 (cuarta pasada — verificación de CONTINUITY)
+**Estado:** Frontend corregido y auditado. Lucky Gift completado con entrada manual y multiplicadores visibles. Backend NO conectado. `.env` contiene credenciales de Supabase (no usadas); faltan `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL`.
 
 ---
 
@@ -13,6 +13,7 @@
 - **Estilos:** `StyleSheet.create` inline, sin NativeWind
 - **Iconos:** `lucide-react-native`
 - **Backend previsto:** Node.js + Express + PostgreSQL + Socket.IO (NO conectado, NO usar Supabase)
+- **`.env` actual:** contiene `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` (credenciales de Bolt, no usadas por la app). Faltan `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL` para conectar el backend real.
 
 ### Estructura de archivos creada
 
@@ -52,19 +53,34 @@ src/
 - `NORMAL_GIFT_DIAMOND_RATE = 0.60`
 - `DIAMONDS_TO_COINS_RATE = 0.95`
 - `ROOM_OWNER_WEEKLY_RATE = 0.05`
+- `WEEKLY_SETTLEMENT_DAY = 0` (domingo), `WEEKLY_SETTLEMENT_HOUR = 19` (7 PM)
+- `HAS_CASHOUT = false`
 - `MAX_LEVEL = null` (niveles ilimitados)
+- `BASE_XP = 10_000`, `LEVEL_INCREMENT = 1.15`
 - `TIER_BOUNDARIES`: standard 1–49, premium 50–99, elite 100–199, royal 200+
+- `LUCKY_GIFT_HAS_POOL = false`
 - `LUCKY_GIFT_MIN_VALUE = 10`, `LUCKY_GIFT_MAX_VALUE = 500_000`
+- `LUCKY_GIFT_DIAMOND_RATE = 0.10`
 - `LUCKY_GIFT_QUANTITIES = [1, 5, 10, 25, 50, 100]`
 - `LUCKY_GIFT_MULTIPLIERS = [1, 5, 10, 25, 50, 100, 250, 500, 600, 750, 800, 900, 1000]`
 - `LUCKY_GIFT_TIERS`: T1 (10–999) hasta T6 (500K)
+- `LUCKY_GIFT_ACTIVITY_MIN = 0.7`, `LUCKY_GIFT_ACTIVITY_MAX = 1.5`, `LUCKY_GIFT_ACTIVITY_INTERVAL_MS = 300000` (5 min)
 - `ROCKET_LEVELS`: 7 niveles con costos (12M, 24M, 42M, 72M, 120M, 210M, 360M)
+- `ROOM_ROLES`: OWNER, ADMIN, MEMBER, TOURIST
+- `MAX_MOMENT_SIZE_MB = 3`, `MAX_MOMENTS_PER_DAY = 1`, `MAX_MOMENT_CAPTION_LENGTH = 1000`
+- `ROOM_CATEGORIES`: general, music, gaming, chat, education, entertainment
 
 ### `src/utils/format.ts` (nuevo)
 - `formatCoins()`: formatea hasta billones (B, M, K).
 - `formatNumber()`: separador de miles con `toLocaleString`.
-- `xpForLevel()`: fórmula del documento maestro (base 10000 × 1.15^(level-1)).
-- `levelProgress()`: calcula porcentaje y XP restante.
+- `formatMultiplier(mult)`: devuelve `x{mult}`.
+- `coinsToUsd(coins)`: convierte coins a USD (÷ 1.000.000).
+- `diamondsToCoins(diamonds)`: convierte diamonds a coins (× 0.95, 5% comisión).
+- `xpForLevel(level)`: fórmula del documento maestro (base 10000 × 1.15^(level-1)).
+- `totalXpForLevel(level)`: XP acumulada desde nivel 1 hasta el nivel dado.
+- `levelProgress(currentLevel, currentXpInLevel)`: calcula porcentaje y XP restante.
+
+> **Nota:** `xpForLevel`, `totalXpForLevel` y `levelProgress` están implementadas pero **no se usan** en la UI actual. Las barras de progreso de nivel en el perfil usan valores hardcodeados (68%, 12.4M/18M para Wealth; 45%, 4.1M/9M para Charm). Conectar estas funciones es una tarea pendiente.
 
 ### `src/services/api.ts` (nuevo)
 - Stub del cliente HTTP. Lee `EXPO_PUBLIC_API_URL`. **No conectado.**
@@ -75,10 +91,12 @@ src/
 - Eventos definidos: join/leave room, send message, send gift, send lucky gift, voice, WebRTC, seat management, rocket, moderación (kick, ban, mute seat, lock seat).
 
 ### `src/hooks/useDemoData.ts` (nuevo)
-- Todos los datos mock centralizados: `demoRooms`, `demoLeaderboard`, `demoMoments`, `demoEvents`, `demoGames`, `demoUser`, `demoGifts`.
+- Todos los datos mock centralizados: `demoRooms`, `demoLeaderboard`, `demoMoments`, `demoEvents`, `demoGames`, `demoUser`, `demoGifts`, `portraitImages`.
 - Cada export está documentado como DEMO.
-- `demoRooms` incluye `seats` con roles OWNER/ADMIN/MEMBER, `settings` con campos de configuración de sala.
-- `demoUser` tiene balances de demostración (24.58M coins, 1.24M diamonds).
+- `demoRooms` tiene 3 salas, todas con `maxSeats: 5`. Incluyen `seats` con roles OWNER/ADMIN/MEMBER y `settings` con campos de configuración de sala (solo la sala 1 tiene `settings` no nulo).
+- `demoUser` tiene balances de demostración (24.58M coins, 1.24M diamonds, Wealth 24, Charm 18).
+- `demoGifts` tiene 4 regalos (Rose 100, Crown 5K, Rocket 50K, Diamond 500K), todos tipo `lucky`.
+- Re-exporta `ROCKET_LEVELS` desde `keysi.ts`.
 
 ---
 
@@ -97,6 +115,7 @@ src/
 - Todas las salas, momentos, eventos, juegos y leaderboard (`useDemoData.ts`).
 - Balance del perfil (24.58M coins, 1.24M diamonds — valores de muestra).
 - Niveles del perfil (Wealth 24, Charm 18 — valores de muestra).
+- **Barras de progreso de nivel** — usan valores hardcodeados (68%/12.4M/18M para Wealth, 45%/4.1M/9M para Charm) en lugar de `xpForLevel`/`levelProgress`. Las funciones existen pero no están conectadas.
 - Botones del menú de perfil (Wallet, My gifts, Saved rooms, etc.) — no navegan.
 - Create Modal — las 4 opciones cierran el modal sin ejecutar acciones.
 - LuckyGiftBar "Send (demo)" — no envía nada al backend.
@@ -104,6 +123,8 @@ src/
 - Filtros de salas (All rooms, Trending, etc.) — cambian visualmente, no filtran datos.
 - Tabs de ranking (Daily/Weekly/Monthly) — no cambian datos.
 - Messages screen — mensaje de bienvenida estático, conexiones sugeridas usan datos del leaderboard.
+- `ROOM_CATEGORIES` definido en config pero no usado en la UI de creación/filtro de salas.
+- `MAX_MOMENT_*` definido en config pero no validado en la UI (no hay creación de momentos funcional).
 
 ---
 
@@ -120,8 +141,9 @@ Los stubs en `src/services/` definen la interfaz pero **no están conectados**. 
 - `GET /moments`, `GET /events`, `GET /games`
 
 ### Socket.IO events propuestos (`src/services/socket.ts`) — pendientes de confirmar
-- Client→Server: authenticate, join_room, leave_room, send_message, send_gift, send_lucky_gift, join_voice, leave_voice, toggle_mute, speaking, webrtc_offer/answer/ice_candidate, add_diamonds_to_rocket, invite_to_seat, lock_seat, unlock_seat, mute_seat, remove_from_seat, kick_user, ban_user, set_seats
+- Client→Server: authenticate, join_room, leave_room, send_message, send_gift, send_lucky_gift, join_voice, leave_voice, toggle_mute, speaking, webrtc_offer/answer/ice_candidate, add_diamonds_to_rocket, invite_to_seat, lock_seat, unlock_seat, mute_seat, **unmute_seat**, remove_from_seat, kick_user, ban_user, set_seats
 - Server→Client: new_message, gift_received, lucky_gift_result, user_joined/left_room, user_joined/left_voice, user_speaking, user_muted, rocket_updated, rocket_launched, seat_updated, user_kicked, user_banned, seats_changed
+- Helpers tipados en `socketEmit`: joinRoom, leaveRoom, sendMessage, sendGift, sendLuckyGift, joinVoice, leaveVoice, toggleMute, inviteToSeat, lockSeat, unlockSeat, muteSeat, removeFromSeat, kickUser (con durationMinutes), banUser, setSeats, addDiamondsToRocket.
 
 ### Datos que no se pueden determinar sin inspeccionar el backend
 - Estructura exacta de respuestas JSON (campos, nombres, tipos).
@@ -218,17 +240,35 @@ Los stubs en `src/services/` definen la interfaz pero **no están conectados**. 
 - **Contrato de integración:** API y Socket.IO definidos como stubs, no conectados.
 - **Build web y lint:** No ejecutados (limitación de entorno Bolt).
 
+### Cuarta pasada (2026-10-26) — verificación de CONTINUITY
+- **Inspección de archivos:** `CONTINUITY.md`, `app/index.tsx`, `src/types/index.ts`, `src/config/keysi.ts`, `src/utils/format.ts`, `src/services/api.ts`, `src/services/socket.ts`, `src/hooks/useDemoData.ts`, `.env`.
+- **Discrepancias corregidas en CONTINUITY.md:**
+  - `.env` contiene credenciales de Supabase, no las URLs de ngrok. Faltan `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL`.
+  - `format.ts` tiene 4 funciones no documentadas: `formatMultiplier`, `coinsToUsd`, `diamondsToCoins`, `totalXpForLevel`.
+  - `keysi.ts` tiene constantes no documentadas: `WEEKLY_SETTLEMENT_*`, `HAS_CASHOUT`, `BASE_XP`, `LEVEL_INCREMENT`, `LUCKY_GIFT_HAS_POOL`, `LUCKY_GIFT_DIAMOND_RATE`, `LUCKY_GIFT_ACTIVITY_*`, `ROOM_ROLES`, `MAX_MOMENT_*`, `ROOM_CATEGORIES`.
+  - Socket.IO tiene evento `UNMUTE_SEAT` no documentado.
+  - `socketEmit` helpers tipados no estaban documentados.
+  - Las barras de progreso de nivel usan valores hardcodeados, no las funciones `xpForLevel`/`levelProgress`.
+  - `demoRooms` tiene solo 3 salas con `maxSeats: 5`; solo la sala 1 tiene `settings` no nulo.
+  - `demoGifts` tiene 4 regalos, todos tipo `lucky`.
+  - `ROOM_CATEGORIES` y `MAX_MOMENT_*` no se usan en la UI.
+  - Comentario en `useDemoData.ts` menciona `/api/gifts` pero `api.getGifts()` apunta a `/gifts`.
+- **TypeScript (`tsc --noEmit`):** No ejecutado en esta pasada (no se modificó código, solo documentación).
+- **Build web y lint:** No ejecutados.
+
 ---
 
 ## Pasos para la Próxima Fase de Integración
 
-1. **Proporcionar URL de ngrok** — configurar `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL` en `.env`.
+1. **Proporcionar URL de ngrok** — añadir `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL` al archivo `.env` (actualmente solo contiene credenciales de Supabase, que no se usan).
 2. **Implementar auth** — crear pantallas de login/register, usar `api.login()` / `api.register()`, guardar token en secure storage.
 3. **Reemplazar datos demo** — cambiar `useDemoData` por llamadas reales a `api.getRooms()`, `api.getBalance()`, etc.
 4. **Conectar Socket.IO** — implementar `socket.connect(token)` al hacer login, escuchar eventos en Room Screen.
 5. **Construir Room Screen completa** — stage, chat, voz, moderación con roles OWNER/ADMIN/MEMBER/TOURIST.
 6. **Lucky Gift real** — enviar via `socketEmit.sendLuckyGift()`, escuchar `lucky_gift_result`.
 7. **Wallet** — conectar `api.getBalance()` y `api.rechargeCoins()`.
+8. **Conectar barras de progreso de nivel** — reemplazar valores hardcodeados por `xpForLevel`/`levelProgress`/`totalXpForLevel`.
+9. **Confirmar ruta de gifts** — `api.getGifts()` apunta a `/gifts` pero un comentario en `useDemoData.ts` menciona `/api/gifts`. Confirmar con el backend.
 
 ---
 
