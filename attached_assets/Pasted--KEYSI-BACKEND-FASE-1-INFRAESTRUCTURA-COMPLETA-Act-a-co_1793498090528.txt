@@ -1,0 +1,270 @@
+# KEYSI BACKEND — FASE 1: INFRAESTRUCTURA COMPLETA
+
+Actúa como arquitecto de software y desarrollador senior especializado en NestJS, TypeScript, PostgreSQL y Prisma.
+
+Necesitamos construir el backend independiente de KEYSI dentro del proyecto actual de Replit.
+
+## 1. CONTEXTO DEL PROYECTO
+
+El proyecto existente utiliza:
+
+- React Native.
+- Expo SDK 58.
+- Expo Router.
+- React y TypeScript.
+- Node.js 22.
+
+El frontend ya está desarrollado y funcionando.
+
+La inspección confirmó que no existe un backend funcional. Los archivos `src/services/api.ts` y `src/services/socket.ts` son solamente contratos de referencia.
+
+La ubicación aprobada para el backend es:
+
+`/backend`
+
+## 2. REGLA FUNDAMENTAL: PROTEGER EL FRONTEND
+
+No debes reconstruir, modificar, reemplazar ni reorganizar el frontend.
+
+No debes alterar:
+
+- `app/`
+- `src/`
+- `assets/`
+- `_reference/`
+- Las pantallas existentes.
+- Los componentes.
+- Los estilos.
+- La navegación.
+- El workflow de Replit.
+- El comando Run actual.
+- El `package.json` y `package-lock.json` de la raíz.
+
+El backend tendrá sus propias dependencias, scripts y configuración dentro de `/backend`.
+
+No debes instalar dependencias del backend en la raíz.
+
+## 3. TECNOLOGÍAS OBLIGATORIAS
+
+Construye el backend con:
+
+- Node.js 22.
+- NestJS.
+- TypeScript.
+- PostgreSQL.
+- Prisma ORM.
+- class-validator.
+- class-transformer.
+- Configuración mediante variables de entorno.
+- Jest para pruebas.
+- Helmet para cabeceras de seguridad.
+- Socket.IO preparado mediante NestJS WebSockets, sin implementar todavía funcionalidades de negocio.
+
+Utiliza versiones estables compatibles entre sí.
+
+## 4. ESTRUCTURA DEL BACKEND
+
+Crea una estructura organizada y escalable:
+
+backend/
+  src/
+    main.ts
+    app.module.ts
+
+    config/
+    database/
+    common/
+      decorators/
+      filters/
+      guards/
+      interceptors/
+      pipes/
+      interfaces/
+
+    modules/
+      health/
+      auth/
+      users/
+      roles/
+      permissions/
+      ledger/
+      economy/
+      payments/
+      coin-sellers/
+      gifts/
+      lucky-gifts/
+      lucky-combo/
+      rooms/
+      realtime/
+      admin/
+
+  prisma/
+    schema.prisma
+
+  test/
+  .env.example
+  .gitignore
+  package.json
+  tsconfig.json
+  README.md
+
+No es necesario implementar todavía los módulos de negocio. Crea únicamente la estructura y los elementos compartidos necesarios para esta fase.
+
+## 5. CONFIGURACIÓN DEL SERVIDOR
+
+Configura NestJS con:
+
+- Prefijo global `/api/v1`.
+- Puerto predeterminado 3001.
+- Puerto configurable mediante `PORT`.
+- CORS configurable mediante variables de entorno.
+- Helmet.
+- Validación global con ValidationPipe.
+- Transformación automática de DTO.
+- Rechazo de propiedades no permitidas.
+- Manejo centralizado de errores.
+- Logs estructurados.
+- Configuración centralizada y validada.
+
+El servidor debe poder ejecutarse independientemente del frontend.
+
+## 6. POSTGRESQL Y PRISMA
+
+Prepara la conexión con PostgreSQL mediante Prisma.
+
+Requisitos:
+
+- `DATABASE_URL` mediante variable de entorno.
+- Archivo `.env.example` sin credenciales reales.
+- Cliente Prisma centralizado como proveedor de NestJS.
+- Conexión y desconexión controladas mediante el ciclo de vida de NestJS.
+- Esquema inicial válido.
+- Comandos para generar el cliente y ejecutar migraciones.
+
+No inventes credenciales de base de datos.
+
+Si Replit no proporciona una base PostgreSQL disponible, deja configurada la integración y explica exactamente cómo conectarla. No declares que la base de datos está conectada si no se ha comprobado.
+
+## 7. ENDPOINTS DE SALUD
+
+Implementa:
+
+GET `/api/v1/health`
+
+Debe devolver el estado del servidor y su información básica.
+
+GET `/api/v1/health/database`
+
+Debe comprobar la conexión real con PostgreSQL y devolver su estado.
+
+Si la base de datos no está configurada, debe informar correctamente que no está disponible, sin simular una conexión exitosa.
+
+## 8. PREPARACIÓN PARA TIEMPO REAL
+
+Prepara la infraestructura de WebSockets con Socket.IO compatible con NestJS.
+
+No implementes todavía:
+
+- Salas.
+- Lucky Gifts.
+- Lucky Combo.
+- Notificaciones económicas.
+- Eventos de regalos.
+
+Establece como regla arquitectónica que los futuros eventos económicos solo se emitirán después de confirmar la transacción correspondiente en PostgreSQL.
+
+## 9. REGLAS ARQUITECTÓNICAS DE KEYSI
+
+Desde el principio, prepara el backend para cumplir estas reglas:
+
+- El frontend nunca será la fuente de verdad de los saldos.
+- Ningún módulo de negocio podrá modificar directamente los saldos.
+- Las operaciones económicas futuras deberán centralizarse en LedgerService.
+- Las operaciones económicas deberán utilizar transacciones de base de datos.
+- Se utilizarán identificadores de idempotencia para evitar operaciones duplicadas.
+- Los registros económicos serán inmutables.
+- Las correcciones se realizarán mediante movimientos compensatorios.
+- Los cálculos monetarios utilizarán enteros, nunca números decimales de punto flotante.
+- Los secretos nunca se almacenarán en el repositorio.
+- Las contraseñas nunca se almacenarán en texto plano.
+
+Estas son reglas de arquitectura; no implementes todavía las operaciones económicas.
+
+## 10. DOCUMENTACIÓN
+
+Crea un README dentro de `/backend` que explique:
+
+- Arquitectura.
+- Requisitos.
+- Instalación.
+- Variables de entorno.
+- Configuración de PostgreSQL.
+- Generación de Prisma.
+- Migraciones.
+- Cómo iniciar el servidor.
+- Cómo ejecutar pruebas.
+- Endpoints disponibles.
+
+Incluye comandos exactos.
+
+## 11. PRUEBAS Y CRITERIOS DE ACEPTACIÓN
+
+No des por terminada la fase simplemente porque hayas creado archivos.
+
+Debes comprobar:
+
+1. Que las dependencias del backend se instalen correctamente.
+2. Que TypeScript compile.
+3. Que NestJS pueda iniciar.
+4. Que `/api/v1/health` responda correctamente.
+5. Que Prisma genere su cliente.
+6. Que el esquema Prisma sea válido.
+7. Que las pruebas disponibles pasen.
+8. Que el backend esté separado del frontend.
+9. Que el frontend de Expo siga funcionando.
+
+Si PostgreSQL no está disponible, distingue claramente entre las pruebas que sí pudieron ejecutarse y las que quedaron pendientes.
+
+## 12. RESTRICCIONES DE ALCANCE
+
+En esta fase NO implementes:
+
+- Registro de usuarios.
+- Login.
+- JWT.
+- Roles funcionales.
+- Permisos funcionales.
+- Billeteras.
+- Coins.
+- Diamonds.
+- Ledger económico.
+- Recargas.
+- Bonos.
+- Vendedores.
+- Regalos.
+- Lucky Gifts.
+- Lucky Combo.
+- Rockets.
+- Pagos reales.
+
+Todo eso se desarrollará en fases posteriores.
+
+## 13. INFORME FINAL OBLIGATORIO
+
+Al terminar, informa:
+
+- Archivos creados.
+- Archivos modificados.
+- Dependencias instaladas y versiones.
+- Estado de compilación.
+- Estado de Prisma.
+- Estado de PostgreSQL.
+- Endpoints probados.
+- Pruebas ejecutadas y resultados.
+- Problemas encontrados.
+- Confirmación de que el frontend no fue alterado.
+- Comandos para iniciar el backend.
+
+Si algo no pudo completarse, dilo claramente. No simules resultados ni ocultes errores.
+
+Implementa ahora la FASE 1 completa, sin avanzar a funcionalidades de negocio.

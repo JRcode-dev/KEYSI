@@ -1,0 +1,556 @@
+# KEYSI — PROMPT MAESTRO DE CONTINUIDAD Y CUARTA PASADA EN REPLIT
+
+## 1. INSTRUCCIÓN PRINCIPAL
+
+Estás trabajando en el proyecto existente KEYSI. Tu tarea es continuar su desarrollo desde el código real del repositorio, respetando todas las decisiones de producto, las reglas de negocio y las restricciones de este documento.
+
+NO reconstruyas la aplicación desde cero. NO sustituyas la arquitectura existente por otra. NO asumas que las instrucciones anteriores ya se ejecutaron. NO afirmes que una funcionalidad está terminada si no has comprobado su implementación.
+
+La cuarta pasada se preparó anteriormente para Bolt.new, pero no existe confirmación de que se ejecutara. Por tanto, debes inspeccionar el estado actual del código antes de modificarlo y determinar qué existe realmente.
+
+Trabaja sobre el repositorio existente:
+
+https://github.com/JRcode-dev/KEYSI
+
+Si el repositorio ya está abierto en Replit, inspecciona ese proyecto. Si no está disponible, solicita acceso o importación del repositorio. No crees una implementación alternativa mientras exista un proyecto original que deba preservarse.
+
+## 2. ARQUITECTURA Y ESTADO CONOCIDO
+
+KEYSI es una aplicación social con salas, usuarios, regalos virtuales, Coins, Diamantes, niveles, cohetes y Lucky Gift.
+
+La arquitectura conocida es:
+
+- Frontend: React Native, Expo, TypeScript y Expo Router.
+- Pantalla principal: `app/index.tsx`.
+- Servicios, tipos y hooks: carpeta `src/`.
+- Servicio HTTP que debe inspeccionarse: `src/services/api.ts`.
+- Servicio de Socket.IO que debe inspeccionarse: `src/services/socket.ts`.
+- Backend existente e independiente: Node.js, Express, Socket.IO y PostgreSQL.
+- Carpeta de referencia histórica: `_reference/`, que contiene código antiguo de Flutter/Dart.
+- Documento de continuidad existente: `CONTINUITY.md`.
+
+El frontend fue migrado desde Flutter/Dart a React Native mediante Expo y TypeScript. Hay partes que todavía utilizan datos de demostración. No se ha confirmado una integración funcional completa entre el frontend y el backend.
+
+Primero identifica la estructura real, las dependencias, las pantallas, los componentes, los servicios, los modelos de datos y las pruebas disponibles.
+
+No supongas que las rutas, nombres de archivos o componentes descritos en este documento siguen siendo idénticos en la versión actual. Localiza las implementaciones reales.
+
+## 3. PROTOCOLO DE TRABAJO OBLIGATORIO
+
+Antes de editar código:
+
+1. Inspecciona el repositorio y su estado actual.
+2. Lee `CONTINUITY.md` y la documentación vigente pertinente.
+3. Localiza las tarjetas de salas y el diálogo de confirmación previo a la entrada.
+4. Localiza la condición que distingue una sala abierta de una vista previa.
+5. Localiza el botón Gifts y el catálogo actual.
+6. Inspecciona los modelos de regalos normales y Lucky Gift.
+7. Identifica de dónde proceden los datos: constantes, fixtures, mocks, API o base de datos.
+8. Revisa la implementación actual de Quantity, Send y combo.
+9. Inspecciona los recursos gráficos existentes y sus rutas.
+10. Revisa `package.json`, el archivo de bloqueo de dependencias, la versión de Expo y las bibliotecas de animación existentes.
+11. Identifica las pruebas, scripts de TypeScript, lint y compilación disponibles.
+12. Presenta un breve diagnóstico inicial que distinga hechos comprobados, problemas detectados y tareas pendientes.
+
+Después, implementa los cambios autorizados de la cuarta pasada en el mismo proyecto.
+
+No te detengas en un informe inicial si puedes continuar trabajando de forma segura. Si encuentras una ambigüedad que impida una decisión irreversible o una regla económica que deba inventarse, conserva el comportamiento actual y documenta el bloqueo.
+
+No elimines ni sobrescribas cambios previos del proyecto sin necesidad.
+
+## 4. REGLAS ECONÓMICAS OFICIALES
+
+Estas reglas tienen prioridad sobre cualquier documentación antigua contradictoria.
+
+### Coins y Diamantes
+
+- Tipo de cambio de compra: 1 USD = 1.000.000 Coins.
+- Regalos normales: el remitente gasta el valor completo del regalo en Coins.
+- El destinatario recibe Diamantes equivalentes al 60 % del valor del regalo, conforme a la regla de conversión definida por el producto.
+- Conversión de Diamantes a Coins: Diamantes × 0,95, con comisión del 5 %.
+- El propietario de una sala recibe una recompensa semanal equivalente al 5 % de las Coins enviadas en esa sala durante el periodo correspondiente.
+- La liquidación semanal se realiza los domingos a las 7:00 p. m., hora de Colombia.
+- No hay retiros de dinero real ni función de cashout.
+- El usuario debe ver un único saldo de Coins. Las categorías de Coins compradas y promocionales pueden existir internamente en el ledger, pero no deben convertirse en dos saldos visibles independientes.
+
+### Niveles
+
+- Wealth y Charm son ilimitados.
+- Standard, Premium, Elite y Royal son categorías visuales, no límites de nivel.
+- No introducir niveles máximos de 125, 199, 200 ni ningún otro número sin aprobación explícita.
+- No inventar fórmulas de XP.
+
+### Cohetes
+
+Precios oficiales en Coins:
+
+1. 12.000.000
+2. 24.000.000
+3. 42.000.000
+4. 72.000.000
+5. 120.000.000
+6. 210.000.000
+7. 360.000.000
+
+La cuarta pasada no debe alterar estas reglas ni implementar cambios en el sistema económico ajenos a su alcance.
+
+## 5. REGLAS OFICIALES DE LUCKY GIFT
+
+- Valor individual: de 10 a 500.000 Coins.
+- Destinatarios mínimos: 1.
+- No inventar un número máximo de destinatarios.
+- Cantidades disponibles: ×1, ×5, ×10, ×25, ×50, ×100 y Manual.
+- Gasto total: valor individual × número de destinatarios × cantidad.
+- Cada destinatario recibe Diamantes equivalentes al 10 % del valor individual del regalo por envío.
+- El creador obtiene un resultado aleatorio por cada envío y los resultados se suman.
+- Cada premio se calcula utilizando el valor individual multiplicado por el multiplicador obtenido, nunca el gasto total.
+
+Multiplicadores documentados:
+
+×1, ×5, ×10, ×25, ×50, ×100, ×250, ×500, ×600, ×750, ×800, ×900 y ×1000.
+
+Niveles de valor documentados:
+
+- T1: 10–999.
+- T2: 1.000–9.999.
+- T3: 10.000–49.999.
+- T4: 50.000–99.999.
+- T5: 100.000–499.999.
+- T6: 500.000.
+
+Existe un factor de actividad entre 0,7 y 1,5 que cambia cada cinco minutos. Su efecto preciso sobre las probabilidades debe verificarse en la implementación y documentación aprobadas. No inventes su fórmula.
+
+Las probabilidades deben estar configuradas y versionadas en la base de datos una vez definidas y aprobadas. No las inventes ni las codifiques directamente en el frontend.
+
+Deben respetarse los límites de emisión diarios, mensuales, globales y por usuario. Si un multiplicador deja de estar disponible por sus límites, no alteres dinámicamente las probabilidades de los demás sin una regla aprobada.
+
+La implementación real debe garantizar transacciones atómicas, bloqueos adecuados, comprobaciones de saldo y límites, aleatoriedad criptográficamente segura, ledger, contadores, confirmación o rollback e idempotencia mediante un identificador único de Lucky Gift.
+
+Se sabe que `POST /api/lucky-gifts/send` ha sido identificado como incompleto para garantizar todos esos requisitos. Sin embargo, NO debes corregir ni conectar el backend en esta cuarta pasada.
+
+No afirmes que Lucky Gift ejecuta transacciones reales mientras el frontend siga desconectado del backend o no existan pruebas suficientes.
+
+## 6. OBJETIVO DE LA CUARTA PASADA
+
+La cuarta pasada se limita principalmente a:
+
+- Eliminar Lucky Gift de las vistas exteriores de las salas.
+- Preservar el diálogo de confirmación de entrada.
+- Mantener el catálogo de regalos exclusivamente dentro de una sala abierta.
+- Organizar el catálogo en dos pestañas con 30 regalos cada una.
+- Mejorar la presentación de los regalos y sus recursos gráficos.
+- Añadir la etiqueta informativa de Lucky Gift en el lugar correcto.
+- Simplificar el selector Quantity.
+- Preservar la distinción entre Quantity y combo.
+- Preparar y verificar las referencias a animaciones Lottie sin inventar recursos.
+- Mantener intactas las funciones ajenas al alcance.
+
+## 7. DIÁLOGO DE CONFIRMACIÓN DE SALA
+
+Antes de entrar en una sala, al seleccionar una tarjeta debe seguir apareciendo el diálogo de confirmación existente.
+
+No elimines este diálogo ni permitas que la selección de una tarjeta entre directamente en la sala si el comportamiento existente exige confirmación.
+
+El diálogo debe conservar:
+
+- Portada de la sala.
+- Nombre de la sala.
+- Nombre del propietario o anfitrión.
+- Número de oyentes.
+- Personas en el escenario.
+- Número de asientos.
+- Botón para entrar.
+- Botón para cerrar.
+
+Los datos deben proceder de la sala seleccionada, no de valores fijos de una captura de ejemplo.
+
+## 8. ELIMINAR LUCKY GIFT DE TODAS LAS VISTAS EXTERIORES
+
+Elimina completamente el panel de Lucky Gift de todas las vistas que aparecen antes de entrar en una sala.
+
+Inspecciona las tarjetas, los diálogos de confirmación, las búsquedas, las vistas previas y cualquier otro componente externo que renderice dicho panel.
+
+No basta con ocultar las cuatro tarjetas de regalos de ejemplo. Debe desaparecer el panel completo con sus mensajes y controles.
+
+Antes de entrar no deben aparecer:
+
+- Catálogo de regalos.
+- Controles de Lucky Gift.
+- Custom Value.
+- Quantity.
+- Recipients.
+- Multipliers.
+- Total Cost.
+- Each Recipient Gets.
+- Max Win Per Send.
+- Botón Send de Lucky Gift.
+- Mensajes promocionales de Lucky Gift.
+
+El diálogo exterior debe conservar únicamente la información necesaria de la sala y los botones de entrada y cierre.
+
+No elimines datos, servicios ni funciones globales de Lucky Gift que sigan siendo necesarios dentro de las salas.
+
+No uses únicamente estilos, opacidad o elementos invisibles para ocultar el panel si puedes corregir correctamente la condición de renderizado.
+
+## 9. CATÁLOGO EXCLUSIVAMENTE DENTRO DE UNA SALA ABIERTA
+
+El usuario solo puede abrir Gifts cuando haya entrado realmente en una sala.
+
+El catálogo debe estar disponible mediante el botón existente Gifts o Regalos dentro de la sala.
+
+Debe tener exactamente dos pestañas:
+
+1. `Normales`: exactamente 30 regalos normales.
+2. `Reembolso`: exactamente 30 regalos Lucky Gift.
+
+Reembolso es el nombre de la pestaña. No es un regalo individual y no significa que se realice un reembolso automático.
+
+No debe existir ningún catálogo de regalos fuera de una sala abierta.
+
+Si el proyecto todavía tiene datos de demostración, puedes conservarlos como fixtures de interfaz, pero identifica claramente que son datos de demostración y no transacciones reales.
+
+## 10. MODELO DE LOS 60 REGALOS Y RECURSOS GRÁFICOS
+
+El catálogo debe contener exactamente 30 regalos normales y 30 Lucky Gift.
+
+Cada regalo debe disponer de:
+
+- ID único.
+- Nombre individual.
+- Precio solo cuando exista un precio aprobado.
+- Referencia a su imagen individual.
+- Tipo de regalo.
+- Indicador explícito de si utiliza imagen estática o animación Lottie.
+- Referencia real al recurso Lottie cuando corresponda.
+
+Comprueba que los IDs sean únicos dentro del catálogo completo, preferiblemente mediante una validación automatizada.
+
+No inventes precios oficiales de regalos normales ni Lucky Gift. Si faltan precios aprobados, conserva el dato como pendiente en lugar de presentar un precio ficticio como definitivo.
+
+Los nombres creativos que propongas y que no estén aprobados deben identificarse como propuestas pendientes de aprobación.
+
+### Imágenes
+
+No uses emojis como ilustraciones principales definitivas.
+
+No reutilices una imagen genérica para aparentar que existen 60 ilustraciones individuales.
+
+Inspecciona los recursos existentes. Si faltan ilustraciones, crea únicamente los recursos que puedas producir realmente y deja constancia de los pendientes. No inventes rutas ni afirmes que un archivo existe sin comprobarlo.
+
+Para cada recurso registra o comprueba:
+
+- ID del regalo.
+- Nombre del archivo.
+- Ruta relativa.
+- Existencia real del archivo.
+- Tipo de recurso.
+- Estado: verificado, provisional o pendiente.
+
+Usa recursos gráficos locales compatibles con la arquitectura del proyecto cuando corresponda. Si la plataforma o el entorno impiden generar ilustraciones individuales auténticas, informa de ello y entrega un inventario preciso de los recursos que faltan.
+
+La apariencia visual debe ser consistente y profesional, pero no simules que 60 ilustraciones están terminadas si no lo están.
+
+## 11. ETIQUETA DE LUCKY GIFT
+
+Cuando el usuario abra Gifts dentro de una sala y seleccione la pestaña Reembolso, debe mostrarse una etiqueta pequeña con el texto exacto:
+
+`Win up to x1000`
+
+Debe aparecer encima de la pestaña o en su zona superior, sin tapar los controles.
+
+Solo debe aparecer en el contexto de Lucky Gift/Reembolso dentro de una sala abierta.
+
+Nunca debe aparecer en tarjetas exteriores, vistas previas ni en el diálogo de confirmación de entrada.
+
+Es una indicación del multiplicador máximo posible, no una promesa de ganancia ni una garantía de resultado.
+
+No muestres probabilidades no aprobadas.
+
+## 12. SIMPLIFICAR LA INTERFAZ DE LUCKY GIFT
+
+Dentro del panel Lucky Gift no muestres los siguientes bloques técnicos:
+
+- Multipliers.
+- Total Cost.
+- Each Recipient Gets.
+- Max Win Per Send.
+
+Elimina su representación visual del panel, pero conserva los cálculos y las validaciones internas que sean necesarios.
+
+No rompas la lógica del envío ni elimines campos de datos únicamente porque ya no se muestran en pantalla.
+
+Recipients no está incluido automáticamente en la lista de elementos que deben desaparecer. Si se necesita para elegir destinatarios, consérvalo en un formato compacto y claro.
+
+No inventes nuevos controles ni mensajes promocionales para sustituir los bloques eliminados.
+
+## 13. SELECTOR QUANTITY
+
+Sustituye la fila horizontal larga de botones por un selector compacto con un menú desplegable vertical.
+
+El menú debe contener:
+
+- `Change quantity`
+- `×1`
+- `×5`
+- `×10`
+- `×25`
+- `×50`
+- `×100`
+- `Manual`
+
+Change quantity debe aparecer dentro del mismo menú, por encima de las opciones, no como un botón independiente exterior.
+
+Al seleccionar una cantidad:
+
+1. Se actualiza el valor visible en el control.
+2. Se cierra el menú.
+3. La selección queda preparada para la siguiente activación de Send.
+
+Manual debe permitir introducir una cantidad personalizada, utilizando las validaciones que ya estén definidas en el sistema.
+
+No inventes límites de cantidad. Si el código no define un límite, identifica esa carencia y no impongas arbitrariamente uno nuevo.
+
+La interfaz debe gestionar valores vacíos, inválidos y estados de carga de forma coherente con el proyecto.
+
+## 14. QUANTITY NO ES COMBO
+
+Esta distinción es obligatoria.
+
+Quantity define cuántas unidades se envían en una activación de Send.
+
+Ejemplo:
+
+- Quantity seleccionada: ×5.
+- Primera pulsación de Send: una activación de ×5.
+- Segunda pulsación de Send: otra activación independiente de ×5.
+
+No acumules automáticamente esas dos activaciones como si la segunda convirtiera el primer envío en ×10.
+
+El combo es una lógica distinta que ya existe en el backend y que debe preservarse.
+
+Según la descripción previa, los toques repetidos pueden avanzar el combo y este finaliza después de un periodo de inactividad. No inventes la duración del temporizador.
+
+Inspecciona el código existente para identificar cómo se calcula, inicia, avanza y termina el combo. No lo rediseñes ni lo sustituyas por Quantity en esta pasada.
+
+Si el frontend no está conectado al backend, limita la conclusión a lo verificable en código. No afirmes que el combo funciona de extremo a extremo.
+
+No implementes nuevas transacciones simuladas para aparentar que el combo funciona realmente.
+
+## 15. ANIMACIONES LOTTIE
+
+Algunos regalos normales tendrán animaciones Lottie y otros no.
+
+Requisitos:
+
+- El modelo debe distinguir entre imagen estática y animación.
+- Cada referencia Lottie debe apuntar a un recurso real.
+- El catálogo muestra siempre la imagen estática.
+- La animación se reproduce al enviar el regalo dentro de la sala cuando el recurso existe y el efecto está habilitado.
+- Si `show_gift_effects` está desactivado, no se muestra la animación ni el efecto visual del regalo.
+- Los regalos sin Lottie continúan funcionando mediante su imagen estática.
+- No añadas una dependencia de animación sin comprobar antes la compatibilidad con la versión instalada de Expo y React Native.
+- Si el proyecto ya contiene una solución de animación compatible, evalúa reutilizarla antes de añadir otra dependencia.
+- Comprueba la existencia, la carga y el formato de cada recurso antes de declarar que funciona.
+
+Distingue entre una referencia declarada, un recurso que existe, un recurso que carga y una animación que realmente se ha reproducido durante una prueba.
+
+No afirmes que todos los regalos tienen animación.
+
+## 16. COMPORTAMIENTO DE SALAS QUE NO DEBE ROMPERSE
+
+Preserva las funciones existentes relacionadas con:
+
+- Modificación del número de asientos por el propietario.
+- Salida de los asientos de las personas que excedan la nueva capacidad, manteniéndolas dentro de la sala.
+- Invitaciones a sentarse por parte del propietario o administradores.
+- Aceptación o rechazo de invitaciones.
+- Bloqueo y desbloqueo de asientos por propietario o administradores.
+- Silenciar y reactivar micrófonos.
+- Imposibilidad de reactivar un micrófono mientras siga aplicado el silencio administrativo.
+- Retirada de un usuario de su asiento sin expulsarlo de la sala.
+- Expulsión temporal de 10 minutos y bloqueo permanente.
+- Roles de propietario, administrador, miembro y turista.
+- Restricciones de los administradores respecto al propietario y otros administradores.
+- Funciones exclusivas del propietario para configuraciones de sala, número de asientos, administración y registros administrativos.
+- Permisos de turistas para micrófono, texto y fotos.
+
+Preserva las configuraciones conocidas:
+
+- `announcement`
+- `welcome_message`
+- `theme`
+- `membership_fee`
+- `tourists_can_mic`
+- `tourists_can_text`
+- `tourists_can_photo`
+- `weekly_coins_sent`
+
+Preserva las preferencias:
+
+- `show_gift_effects`
+- `show_rocket_effects`
+- `show_entry_effects`
+
+No elimines ni modifiques destructivamente código, tablas o funciones relacionadas con agencias o retiros. Cualquier auditoría de ese tipo queda fuera del alcance y requiere autorización explícita.
+
+## 17. LÍMITES DEL TRABAJO AUTORIZADO
+
+NO realices las siguientes tareas como parte de esta pasada:
+
+- No conectes el frontend al backend.
+- No modifiques las transacciones económicas del backend.
+- No configures ngrok.
+- No migres a Bolt Database.
+- No inventes precios, probabilidades, límites ni fórmulas de XP.
+- No elimines `_reference/`.
+- No elimines `CONTINUITY.md`.
+- No alteres la lógica del combo.
+- No borres funciones de agencias o retiros.
+- No hagas commits ni push sin autorización explícita.
+- No realices migraciones destructivas de base de datos.
+- No añadas secretos, tokens ni credenciales al repositorio.
+- No afirmes que la integración con PostgreSQL o Socket.IO está operativa sin comprobarla.
+- No sustituyas la aplicación existente por una maqueta nueva.
+- No declares finalizada una tarea por haber añadido solo su representación visual.
+
+Puedes modificar los componentes, modelos, datos de demostración y recursos que sean necesarios para completar la interfaz, siempre que preserves la arquitectura y los comportamientos ajenos al alcance.
+
+## 18. PRUEBAS Y CRITERIOS DE ACEPTACIÓN
+
+Después de implementar los cambios, ejecuta las comprobaciones que realmente estén disponibles.
+
+### A. Vistas externas
+
+- [ ] No hay regalos ni paneles Lucky Gift en tarjetas, búsquedas, vistas previas ni diálogos exteriores.
+- [ ] El diálogo de confirmación sigue presente.
+- [ ] Conserva portada, nombre, anfitrión, oyentes, escenario, asientos y botones.
+- [ ] Los datos son dinámicos, no valores fijos de una captura.
+
+### B. Catálogo
+
+- [ ] El catálogo solo se puede abrir dentro de una sala abierta.
+- [ ] La pestaña Normales contiene exactamente 30 elementos.
+- [ ] La pestaña Reembolso contiene exactamente 30 Lucky Gift.
+- [ ] Los 60 IDs son únicos.
+- [ ] Cada elemento tiene un nombre individual.
+- [ ] Cada ruta de imagen ha sido comprobada.
+- [ ] Se identifican todas las imágenes provisionales o pendientes.
+- [ ] No se usan emojis como ilustraciones definitivas principales.
+- [ ] Win up to x1000 solo aparece dentro de Reembolso/Lucky Gift en una sala abierta.
+
+### C. Interfaz Lucky Gift
+
+- [ ] No aparece Multipliers.
+- [ ] No aparece Total Cost.
+- [ ] No aparece Each Recipient Gets.
+- [ ] No aparece Max Win Per Send.
+- [ ] Se conservan las validaciones y los cálculos internos necesarios.
+- [ ] Recipients se mantiene cuando corresponda.
+
+### D. Quantity y combo
+
+- [ ] Quantity utiliza un menú desplegable compacto.
+- [ ] Change quantity aparece dentro del menú.
+- [ ] Se ofrecen las seis cantidades predefinidas y Manual.
+- [ ] La selección cierra el menú y queda visible.
+- [ ] Manual utiliza las validaciones existentes.
+- [ ] Dos pulsaciones independientes de Send con ×5 representan dos activaciones independientes de ×5.
+- [ ] El código de combo existente se ha preservado.
+- [ ] Se documenta exactamente qué parte del combo se verificó y qué parte no puede probarse sin backend conectado.
+
+### E. Lottie
+
+- [ ] Se identifican los regalos que tienen Lottie y los que no.
+- [ ] Se comprueba la existencia de cada recurso declarado.
+- [ ] Se comprueba su carga cuando el entorno permite hacerlo.
+- [ ] Se respeta `show_gift_effects`.
+- [ ] El catálogo utiliza imágenes estáticas.
+- [ ] No se declaran animaciones verificadas sin pruebas de reproducción.
+
+### F. Calidad técnica
+
+- [ ] Se ejecuta TypeScript si hay un script o comando compatible.
+- [ ] Se ejecuta lint si está configurado.
+- [ ] Se ejecutan las pruebas disponibles.
+- [ ] Se comprueba la compilación o exportación de Expo si el entorno lo permite.
+- [ ] Se revisan los errores de importación y las rutas de recursos.
+- [ ] Se informa de los fallos preexistentes y los nuevos por separado.
+- [ ] Se indica si alguna prueba no pudo ejecutarse y por qué.
+- [ ] No se afirma que se hicieron pruebas visuales manuales si no se hicieron.
+
+Si una prueba falla, intenta localizar la causa y corregirla cuando esté dentro del alcance. No ocultes errores ni desactives controles para conseguir un resultado aparentemente satisfactorio.
+
+## 19. ACTUALIZAR CONTINUITY.MD
+
+Actualiza el `CONTINUITY.md` existente después de completar el trabajo.
+
+No reemplaces su contenido histórico indiscriminadamente. Integra una nueva sección que incluya:
+
+- Fecha del trabajo.
+- Archivos modificados.
+- Cambios realmente implementados.
+- Cantidad real de regalos por pestaña.
+- Estado individual de las imágenes.
+- Estado de los recursos Lottie.
+- Comportamiento de Quantity.
+- Estado de preservación del combo.
+- Pruebas ejecutadas y resultados exactos.
+- Problemas encontrados.
+- Tareas pendientes.
+- Confirmación de que el backend sigue sin conectarse como parte de esta pasada.
+
+No marques una tarea como terminada si solo se ha preparado o si faltan comprobaciones necesarias.
+
+## 20. INFORME FINAL OBLIGATORIO
+
+Al terminar, presenta un informe estructurado con estas secciones:
+
+### 1. Resumen
+Qué cambió realmente y qué quedó pendiente.
+
+### 2. Archivos modificados
+Lista de rutas y explicación breve del cambio en cada archivo.
+
+### 3. Vistas externas y diálogo de sala
+Resultados concretos de las comprobaciones.
+
+### 4. Catálogo de regalos
+Número exacto de regalos normales y Lucky Gift, IDs, nombres, precios aprobados disponibles y recursos pendientes.
+
+### 5. Imágenes y Lottie
+Inventario de recursos comprobados, provisionales, ausentes y no reproducidos.
+
+### 6. Quantity y combo
+Descripción de lo que demuestra el código y de las pruebas realmente ejecutadas.
+
+### 7. Pruebas técnicas
+Comandos ejecutados, resultados exactos y errores.
+
+### 8. Backend e integración
+Qué sigue desconectado, qué continúa siendo una simulación y qué no se pudo comprobar.
+
+### 9. CONTINUITY.md
+Confirmación de su actualización y resumen de la nueva sección.
+
+### 10. Pendientes
+Lista priorizada de los problemas restantes.
+
+Para cada criterio de aceptación utiliza uno de estos estados:
+
+- VERIFICADO: existe evidencia suficiente.
+- IMPLEMENTADO, NO VERIFICADO: hay código, pero falta una prueba necesaria.
+- PARCIAL: solo se ha completado parte del requisito.
+- PENDIENTE: no se ha implementado.
+- BLOQUEADO: no se pudo avanzar por una dependencia o limitación concreta.
+
+Incluye evidencia real, como rutas, resultados de comandos y nombres de pruebas. No inventes capturas, resultados, archivos ni verificaciones.
+
+## 21. PRIMERA ACCIÓN
+
+Comienza inspeccionando el proyecto existente en Replit.
+
+Primero determina qué está realmente implementado. Después ejecuta la cuarta pasada con cambios mínimos y controlados, preservando las reglas económicas y el resto del sistema.
+
+Tu objetivo es entregar una interfaz de regalos correctamente ubicada y verificable, no simular una integración de producción que todavía no existe.
+
+No realices commits ni push. Espera autorización explícita antes de hacerlo.

@@ -1,0 +1,1 @@
+- [Expo 58 runtime and package setup](expo58-runtime.md) — use Node 22+ and resolve firewall-blocked transitive packages to an approved safe version.

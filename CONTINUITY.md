@@ -1,0 +1,345 @@
+# KEYSI — Documento de Continuidad
+
+**Fecha:** 2026-10-26 (cuarta pasada — verificación de CONTINUITY)
+**Estado:** Frontend corregido y auditado. Lucky Gift completado con entrada manual y multiplicadores visibles. Backend NO conectado. `.env` contiene credenciales de Supabase (no usadas); faltan `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL`.
+
+---
+
+## Stack y Estructura
+
+- **Framework:** Expo SDK 58, React Native 0.88, React 19, TypeScript 7
+- **Router:** Expo Router (archivo único `app/index.tsx`)
+- **Navegación:** Tab-based bottom bar (Home, Discover, [+], Messages, Profile)
+- **Estilos:** `StyleSheet.create` inline, sin NativeWind
+- **Iconos:** `lucide-react-native`
+- **Backend previsto:** Node.js + Express + PostgreSQL + Socket.IO (NO conectado, NO usar Supabase)
+- **`.env` actual:** contiene `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` (credenciales de Bolt, no usadas por la app). Faltan `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL` para conectar el backend real.
+
+### Estructura de archivos creada
+
+```
+src/
+├── types/index.ts        # Tipos compartidos del dominio KEYSI
+├── config/keysi.ts       # Constantes del producto (economía, niveles, lucky gift, rocket)
+├── utils/format.ts       # Formateadores de números grandes (coins, XP)
+├── services/api.ts       # Stub del cliente HTTP (no conectado)
+├── services/socket.ts    # Stub del cliente Socket.IO (no conectado)
+└── hooks/useDemoData.ts  # Todos los datos de demostración centralizados
+```
+
+---
+
+## Archivos Modificados y Razón
+
+### `app/index.tsx` (refactorizado)
+- **Por qué:** Corregir reglas de producto incorrectas y usar tipos compartidos.
+- **Cambios:**
+  - Importa tipos desde `@/src/types` en lugar de definir tipos inline.
+  - Importa datos de demostración desde `@/src/hooks/useDemoData` (claramente etiquetados como DEMO).
+  - `LevelPill` ahora usa `getLevelTier()` desde `@/src/config/keysi` — sin nivel máximo.
+  - Descripción de niveles actualizada: "Levels are unlimited."
+  - Balance etiquetado como "YOUR BALANCE · DEMO" con valores de demostración.
+  - `LuckyGiftBar` reconstruida con reglas reales: valor 10–500K (con entrada manual), cantidades x1/x5/x10/x25/x50/x100 más cantidad manual, 13 multiplicadores visibles, selección de destinatarios sin máximo, cálculo de costo total = valor × destinatarios × cantidad, diamonds por destinatario (10%), tiers T1–T6, premio del creador = valor individual × multiplicador (no gasto total), botón "Send (demo)" que no ejecuta transacciones reales.
+  - Room Modal ahora usa `ScrollView` para acomodar la barra expandida de Lucky Gift.
+  - Room Modal ahora usa `selectedRoom.seats` para contar "on stage" dinámicamente.
+  - Room Modal cambió "room rating" por "seats" (máximo de asientos).
+  `formatCoins()` y `formatNumber()` desde `@/src/utils/format` para manejar cantidades grandes.
+
+### `src/types/index.ts` (nuevo)
+- Tipos: `UserProfile`, `Room`, `RoomSeat`, `RoomSettings`, `RoomRole`, `Gift`, `LuckyGiftResult`, `RocketLevel`, `Moment`, `AppEvent`, `Game`, `LeaderboardEntry`, `UserPreferences`.
+
+### `src/config/keysi.ts` (nuevo)
+- `COINS_PER_USD = 1_000_000`
+- `NORMAL_GIFT_DIAMOND_RATE = 0.60`
+- `DIAMONDS_TO_COINS_RATE = 0.95`
+- `ROOM_OWNER_WEEKLY_RATE = 0.05`
+- `WEEKLY_SETTLEMENT_DAY = 0` (domingo), `WEEKLY_SETTLEMENT_HOUR = 19` (7 PM)
+- `HAS_CASHOUT = false`
+- `MAX_LEVEL = null` (niveles ilimitados)
+- `BASE_XP = 10_000`, `LEVEL_INCREMENT = 1.15`
+- `TIER_BOUNDARIES`: standard 1–49, premium 50–99, elite 100–199, royal 200+
+- `LUCKY_GIFT_HAS_POOL = false`
+- `LUCKY_GIFT_MIN_VALUE = 10`, `LUCKY_GIFT_MAX_VALUE = 500_000`
+- `LUCKY_GIFT_DIAMOND_RATE = 0.10`
+- `LUCKY_GIFT_QUANTITIES = [1, 5, 10, 25, 50, 100]`
+- `LUCKY_GIFT_MULTIPLIERS = [1, 5, 10, 25, 50, 100, 250, 500, 600, 750, 800, 900, 1000]`
+- `LUCKY_GIFT_TIERS`: T1 (10–999) hasta T6 (500K)
+- `LUCKY_GIFT_ACTIVITY_MIN = 0.7`, `LUCKY_GIFT_ACTIVITY_MAX = 1.5`, `LUCKY_GIFT_ACTIVITY_INTERVAL_MS = 300000` (5 min)
+- `ROCKET_LEVELS`: 7 niveles con costos (12M, 24M, 42M, 72M, 120M, 210M, 360M)
+- `ROOM_ROLES`: OWNER, ADMIN, MEMBER, TOURIST
+- `MAX_MOMENT_SIZE_MB = 3`, `MAX_MOMENTS_PER_DAY = 1`, `MAX_MOMENT_CAPTION_LENGTH = 1000`
+- `ROOM_CATEGORIES`: general, music, gaming, chat, education, entertainment
+
+### `src/utils/format.ts` (nuevo)
+- `formatCoins()`: formatea hasta billones (B, M, K).
+- `formatNumber()`: separador de miles con `toLocaleString`.
+- `formatMultiplier(mult)`: devuelve `x{mult}`.
+- `coinsToUsd(coins)`: convierte coins a USD (÷ 1.000.000).
+- `diamondsToCoins(diamonds)`: convierte diamonds a coins (× 0.95, 5% comisión).
+- `xpForLevel(level)`: fórmula del documento maestro (base 10000 × 1.15^(level-1)).
+- `totalXpForLevel(level)`: XP acumulada desde nivel 1 hasta el nivel dado.
+- `levelProgress(currentLevel, currentXpInLevel)`: calcula porcentaje y XP restante.
+
+> **Nota:** `xpForLevel`, `totalXpForLevel` y `levelProgress` están implementadas pero **no se usan** en la UI actual. Las barras de progreso de nivel en el perfil usan valores hardcodeados (68%, 12.4M/18M para Wealth; 45%, 4.1M/9M para Charm). Conectar estas funciones es una tarea pendiente.
+
+### `src/services/api.ts` (nuevo)
+- Stub del cliente HTTP. Lee `EXPO_PUBLIC_API_URL`. **No conectado.**
+- Endpoints definidos: auth, rooms, wallet, gifts, leaderboard, moments, events, games.
+
+### `src/services/socket.ts` (nuevo)
+- Stub del cliente Socket.IO. Lee `EXPO_PUBLIC_SOCKET_URL`. **No conectado.**
+- Eventos definidos: join/leave room, send message, send gift, send lucky gift, voice, WebRTC, seat management, rocket, moderación (kick, ban, mute seat, lock seat).
+
+### `src/hooks/useDemoData.ts` (nuevo)
+- Todos los datos mock centralizados: `demoRooms`, `demoLeaderboard`, `demoMoments`, `demoEvents`, `demoGames`, `demoUser`, `demoGifts`, `portraitImages`.
+- Cada export está documentado como DEMO.
+- `demoRooms` tiene 3 salas, todas con `maxSeats: 5`. Incluyen `seats` con roles OWNER/ADMIN/MEMBER y `settings` con campos de configuración de sala (solo la sala 1 tiene `settings` no nulo).
+- `demoUser` tiene balances de demostración (24.58M coins, 1.24M diamonds, Wealth 24, Charm 18).
+- `demoGifts` tiene 4 regalos (Rose 100, Crown 5K, Rocket 50K, Diamond 500K), todos tipo `lucky`.
+- Re-exporta `ROCKET_LEVELS` desde `keysi.ts`.
+
+---
+
+## Reglas de Producto Reflejadas Correctamente
+
+1. **Niveles ilimitados** — `MAX_LEVEL = null`, `getLevelTier()` no tiene tope, LevelPill funciona con cualquier nivel.
+2. **Economía** — 1 USD = 1M coins, 60% diamonds en regalos normales, 95% conversión diamonds→coins, 5% recompensa semanal propietario, sin cashout.
+3. **Lucky Gift** — valor 10–500K con entrada manual y validación de rango, cantidades x1/x5/x10/x25/x50/x100 más cantidad manual, 13 multiplicadores visibles en la interfaz, 6 tiers T1–T6, 10% diamonds por destinatario, costo total = valor × destinatarios × cantidad, premio del creador = valor individual × multiplicador (no gasto total), botón etiquetado como demo.
+4. **Rocket** — 7 niveles con costos correctos (12M–360M coins).
+5. **Datos demo etiquetados** — balance marcado "DEMO", nota "Demo only" en lucky gift.
+
+---
+
+## Funciones que Siguen Siendo Mocks
+
+- Todas las salas, momentos, eventos, juegos y leaderboard (`useDemoData.ts`).
+- Balance del perfil (24.58M coins, 1.24M diamonds — valores de muestra).
+- Niveles del perfil (Wealth 24, Charm 18 — valores de muestra).
+- **Barras de progreso de nivel** — usan valores hardcodeados (68%/12.4M/18M para Wealth, 45%/4.1M/9M para Charm) en lugar de `xpForLevel`/`levelProgress`. Las funciones existen pero no están conectadas.
+- Botones del menú de perfil (Wallet, My gifts, Saved rooms, etc.) — no navegan.
+- Create Modal — las 4 opciones cierran el modal sin ejecutar acciones.
+- LuckyGiftBar "Send (demo)" — no envía nada al backend.
+- Search bar — no funcional.
+- Filtros de salas (All rooms, Trending, etc.) — cambian visualmente, no filtran datos.
+- Tabs de ranking (Daily/Weekly/Monthly) — no cambian datos.
+- Messages screen — mensaje de bienvenida estático, conexiones sugeridas usan datos del leaderboard.
+- `ROOM_CATEGORIES` definido en config pero no usado en la UI de creación/filtro de salas.
+- `MAX_MOMENT_*` definido en config pero no validado en la UI (no hay creación de momentos funcional).
+
+---
+
+## Contrato de Integración (NO verificado — pendiente de confirmar con el backend)
+
+Los stubs en `src/services/` definen la interfaz pero **no están conectados**. No existe URL de backend operativa. Las rutas y eventos siguientes son **propuestas** que deben confirmarse inspeccionando el backend real.
+
+### API endpoints propuestos (`src/services/api.ts`) — pendientes de confirmar
+- `POST /auth/login`, `POST /auth/register`, `GET /auth/verify`
+- `GET /rooms`, `GET /rooms/hot`, `GET /rooms/recent`, `GET /rooms/:id`, `POST /rooms`, `DELETE /rooms/:id`, `GET /rooms/:id/messages`
+- `GET /wallet/balance`, `POST /wallet/recharge`
+- `GET /gifts`
+- `GET /leaderboard/:period`
+- `GET /moments`, `GET /events`, `GET /games`
+
+### Socket.IO events propuestos (`src/services/socket.ts`) — pendientes de confirmar
+- Client→Server: authenticate, join_room, leave_room, send_message, send_gift, send_lucky_gift, join_voice, leave_voice, toggle_mute, speaking, webrtc_offer/answer/ice_candidate, add_diamonds_to_rocket, invite_to_seat, lock_seat, unlock_seat, mute_seat, **unmute_seat**, remove_from_seat, kick_user, ban_user, set_seats
+- Server→Client: new_message, gift_received, lucky_gift_result, user_joined/left_room, user_joined/left_voice, user_speaking, user_muted, rocket_updated, rocket_launched, seat_updated, user_kicked, user_banned, seats_changed
+- Helpers tipados en `socketEmit`: joinRoom, leaveRoom, sendMessage, sendGift, sendLuckyGift, joinVoice, leaveVoice, toggleMute, inviteToSeat, lockSeat, unlockSeat, muteSeat, removeFromSeat, kickUser (con durationMinutes), banUser, setSeats, addDiamondsToRocket.
+
+### Datos que no se pueden determinar sin inspeccionar el backend
+- Estructura exacta de respuestas JSON (campos, nombres, tipos).
+- Eventos Socket.IO reales y sus payloads.
+- Esquema de la base de datos PostgreSQL (tablas, columnas, relaciones).
+- Sistema de autenticación (JWT, sesiones, formato del token).
+- Reglas de validación de transacciones (idempotencia, atomicidad).
+- Configuración versionada de probabilidades de Lucky Gift.
+- Límites de emisión globales y por usuario.
+- Formato de los registros de acciones de moderación.
+
+---
+
+## Pendientes de Backend
+
+1. **Autenticación** — login/register/verify + persistencia de token (secure storage).
+2. **Salas reales** — CRUD completo, listado, join/leave via Socket.IO.
+3. **Room Screen completa** — stage con asientos, chat en vivo, voz WebRTC, moderación.
+4. **Wallet real** — balance, recarga, conversión diamonds→coins.
+5. **Lucky Gift real** — envío via Socket.IO, recepción de resultado del backend.
+6. **Gifts normales** — lista de regalos desde API, envío via Socket.IO.
+7. **Momentos** — CRUD, upload de fotos, like/comment.
+8. **Eventos** — CRUD, participar, guardar.
+9. **Juegos** — integración con minijuegos reales.
+10. **Mensajería privada** — lista de conversaciones + chat 1-a-1.
+11. **Notificaciones** — pantalla y push.
+12. **Búsqueda** — search real de salas, usuarios, eventos.
+13. **Perfil edit** — avatar, bio, username.
+14. **Preferencias** — toggle de efectos de regalos, rocket, entrada.
+
+---
+
+## Reglas de Salas, Roles y Permisos
+
+**Roles:** OWNER, ADMIN, MEMBER, TOURIST (definidos en `src/types/index.ts` y `src/config/keysi.ts`).
+
+**Asientos** (eventos Socket.IO definidos en `src/services/socket.ts`):
+- Propietario puede cambiar el número de asientos (`set_seats`).
+- Si se reducen asientos, los usuarios afectados permanecen en la sala pero sin asiento.
+- Propietario o admin puede invitar a un usuario presente a un asiento (`invite_to_seat`); el invitado puede aceptar o rechazar.
+- Propietario o admin puede bloquear/desbloquear asientos (`lock_seat` / `unlock_seat`).
+- Propietario o admin puede silenciar un asiento (`mute_seat`); el usuario silenciado no puede reactivar su micrófono.
+- Propietario o admin puede retirar a un usuario de su asiento sin expulsarlo (`remove_from_seat`).
+
+**Moderación:**
+- Expulsión temporal de 10 minutos (`kick_user` con `durationMinutes: 10`).
+- Bloqueo permanente de entrada (`ban_user`).
+- Los administradores no pueden actuar contra el propietario ni contra otros administradores (validación del backend).
+- El propietario es el único que puede modificar configuración, cambiar asientos, asignar/retirar admins y consultar registros.
+
+**Configuración de sala** (tipo `RoomSettings` en `src/types/index.ts`):
+- `announcement`, `welcomeMessage`, `theme`, `membershipFee`.
+- `touristCanMic`, `touristCanText`, `touristCanPhotos`.
+- `weeklyCoinsSent`.
+
+**Preferencias del usuario** (tipo `UserPreferences`):
+- `showGiftEffects`, `showRocketEffects`, `showEntryEffects`.
+
+> **Nota:** Estas reglas están tipadas y los eventos Socket.IO están definidos, pero las validaciones reales de permisos deben ejecutarse en el backend. El frontend solo refleja estados visuales.
+
+---
+
+## Decisiones de Producto Abiertas
+
+- **Probabilidades de multiplicadores de Lucky Gift:** pendiente de validar y simular. El frontend no las define; deben ser configuración versionada en la base de datos.
+- **Límites globales de Lucky Gift (diario/mensual/por usuario):** el frontend puede reflejar multiplicadores indisponibles, pero el backend decide.
+- **Factor de actividad (0.7–1.5):** se recalcula cada 5 min en el backend. El frontend no lo calcula.
+- **Cantidad manual en Lucky Gift:** implementada — hay un campo de entrada manual además de los presets x1/x5/x10/x25/x50/x100.
+- **Valor manual en Lucky Gift:** implementado — el usuario puede introducir un valor entre 10 y 500.000 Coins, con validación de rango.
+- **Multiplicadores visibles:** los 13 multiplicadores (x1–x1000) se muestran en la interfaz, pero su disponibilidad real depende del backend (límites diarios/mensuales/por usuario).
+- **Saldo visible:** se muestra un único saldo de Coins. La separación compradas/promocionales es interna.
+- **Fórmula de XP:** base 10000 × 1.15^(level-1), tomada del documento maestro. No se modificó.
+
+---
+
+## Validaciones Ejecutadas
+
+### Primera pasada (2026-10-25)
+- **TypeScript (`tsc --noEmit`):** PASS — 0 errores después de corregir conflicto de nombre `Gift` (lucide icon vs tipo).
+
+### Segunda pasada (2026-10-25) — auditoría de reglas
+- **TypeScript (`tsc --noEmit`):** PASS — 0 errores.
+- **Búsqueda de precios antiguos de Rocket (200K–6M):** Sin coincidencias.
+- **Búsqueda de `coinsPerUsd = 25000`:** Sin coincidencias.
+- **Búsqueda de `maxLevel = 125`:** Sin coincidencias.
+- **Búsqueda de `diamondsToCoinsRate = 0.50`:** Sin coincidencias.
+- **Verificación de los 7 costos de Rocket:** correctos.
+- **Verificación de multiplicadores y tiers Lucky Gift:** correctos.
+
+### Tercera pasada (2026-10-25) — auditoría de Lucky Gift, salas e integración
+- **TypeScript (`tsc --noEmit`):** PASS — 0 errores después de añadir entrada manual de valor, cantidad manual, y visualización de los 13 multiplicadores.
+- **Auditoría Lucky Gift:** valor 10–500K con entrada manual ✓, cantidades preset + manual ✓, destinatarios sin máximo ✓, costo total = valor × destinatarios × cantidad ✓, diamonds por destinatario = 10% ✓, premio del creador = valor individual × multiplicador ✓, 13 multiplicadores visibles ✓, 6 tiers T1–T6 ✓.
+- **Auditoría salas/roles:** tipos `RoomRole` (OWNER/ADMIN/MEMBER/TOURIST) ✓, `RoomSeat` con `isMuted`/`isLocked`/`role` ✓, `RoomSettings` con `touristCanMic`/`touristCanText`/`touristCanPhotos`/`membershipFee`/`announcement`/`welcomeMessage`/`theme`/`weeklyCoinsSent` ✓, eventos Socket.IO para `set_seats`/`invite_to_seat`/`lock_seat`/`mute_seat`/`remove_from_seat`/`kick_user` (10 min)/`ban_user` ✓.
+- **Contrato de integración:** API y Socket.IO definidos como stubs, no conectados.
+- **Build web y lint:** No ejecutados (limitación de entorno Bolt).
+
+### Cuarta pasada (2026-10-26) — verificación de CONTINUITY
+- **Inspección de archivos:** `CONTINUITY.md`, `app/index.tsx`, `src/types/index.ts`, `src/config/keysi.ts`, `src/utils/format.ts`, `src/services/api.ts`, `src/services/socket.ts`, `src/hooks/useDemoData.ts`, `.env`.
+- **Discrepancias corregidas en CONTINUITY.md:**
+  - `.env` contiene credenciales de Supabase, no las URLs de ngrok. Faltan `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL`.
+  - `format.ts` tiene 4 funciones no documentadas: `formatMultiplier`, `coinsToUsd`, `diamondsToCoins`, `totalXpForLevel`.
+  - `keysi.ts` tiene constantes no documentadas: `WEEKLY_SETTLEMENT_*`, `HAS_CASHOUT`, `BASE_XP`, `LEVEL_INCREMENT`, `LUCKY_GIFT_HAS_POOL`, `LUCKY_GIFT_DIAMOND_RATE`, `LUCKY_GIFT_ACTIVITY_*`, `ROOM_ROLES`, `MAX_MOMENT_*`, `ROOM_CATEGORIES`.
+  - Socket.IO tiene evento `UNMUTE_SEAT` no documentado.
+  - `socketEmit` helpers tipados no estaban documentados.
+  - Las barras de progreso de nivel usan valores hardcodeados, no las funciones `xpForLevel`/`levelProgress`.
+  - `demoRooms` tiene solo 3 salas con `maxSeats: 5`; solo la sala 1 tiene `settings` no nulo.
+  - `demoGifts` tiene 4 regalos, todos tipo `lucky`.
+  - `ROOM_CATEGORIES` y `MAX_MOMENT_*` no se usan en la UI.
+  - Comentario en `useDemoData.ts` menciona `/api/gifts` pero `api.getGifts()` apunta a `/gifts`.
+- **TypeScript (`tsc --noEmit`):** No ejecutado en esta pasada (no se modificó código, solo documentación).
+- **Build web y lint:** No ejecutados.
+
+---
+
+## Pasos para la Próxima Fase de Integración
+
+1. **Proporcionar URL de ngrok** — añadir `EXPO_PUBLIC_API_URL` y `EXPO_PUBLIC_SOCKET_URL` al archivo `.env` (actualmente solo contiene credenciales de Supabase, que no se usan).
+2. **Implementar auth** — crear pantallas de login/register, usar `api.login()` / `api.register()`, guardar token en secure storage.
+3. **Reemplazar datos demo** — cambiar `useDemoData` por llamadas reales a `api.getRooms()`, `api.getBalance()`, etc.
+4. **Conectar Socket.IO** — implementar `socket.connect(token)` al hacer login, escuchar eventos en Room Screen.
+5. **Construir Room Screen completa** — stage, chat, voz, moderación con roles OWNER/ADMIN/MEMBER/TOURIST.
+6. **Lucky Gift real** — enviar via `socketEmit.sendLuckyGift()`, escuchar `lucky_gift_result`.
+7. **Wallet** — conectar `api.getBalance()` y `api.rechargeCoins()`.
+8. **Conectar barras de progreso de nivel** — reemplazar valores hardcodeados por `xpForLevel`/`levelProgress`/`totalXpForLevel`.
+9. **Confirmar ruta de gifts** — `api.getGifts()` apunta a `/gifts` pero un comentario en `useDemoData.ts` menciona `/api/gifts`. Confirmar con el backend.
+
+---
+
+## Información del Backend que Necesitamos Revisar
+
+Antes de conectar el backend, necesitamos inspeccionar o recibir del propietario:
+
+1. **Rutas HTTP reales** — confirmar los endpoints definidos en `src/services/api.ts` o proporcionar las rutas correctas.
+2. **Eventos Socket.IO reales** — confirmar los nombres de eventos y sus payloads en `src/services/socket.ts`.
+3. **Esquema de la base de datos** — tablas de usuarios, salas, asientos, regalos, transacciones, rockets, momentos, eventos, leaderboard.
+4. **Sistema de autenticación** — formato del token JWT, duración de sesión, refresh tokens.
+5. **Configuración de Lucky Gift** — probabilidades versionadas, límites diarios/mensuales/por usuario, factor de actividad.
+6. **Reglas de validación** — idempotencia de transacciones, atomicidad, validación de saldos.
+7. **WebRTC/voz** — signaling, STUN/TURN, formato de offers/answers.
+8. **Upload de archivos** — momentos (fotos), avatares, covers de salas (storage, límites, URLs).
+
+---
+
+## Cuarta pasada de Gifts (2026-10-28)
+
+### Archivos y cambios realizados
+
+- `app/index.tsx`: quitó el panel Lucky Gift de la confirmación previa a entrar; conserva portada, anfitrión, oyentes, personas en escenario, asientos y botones. La confirmación sigue siendo obligatoria. Las tarjetas de Discover ahora pasan la sala pulsada, no siempre la primera.
+- `src/components/EnteredRoomScreen.tsx` (nuevo): añade el estado de sala abierta de demostración y el botón Gifts disponible solo dentro de ella. La vista declara que chat y voz no están conectados.
+- `src/components/GiftCatalogSheet.tsx` (nuevo): crea las pestañas `Normales` y `Reembolso`, el mensaje `Win up to x1000` solo en Reembolso, la entrada de valor Lucky Gift y el menú vertical Quantity.
+- `src/data/giftCatalog.ts` (nuevo): define los 60 elementos, metadatos de aprobación/recursos y una comprobación en ejecución para 30 regalos normales, 30 Lucky Gift, nombres únicos e IDs únicos.
+- `src/hooks/useDemoData.ts`: elimina los cuatro precios Lucky Gift de demostración que no estaban aprobados.
+- `.replit`: fija Node.js 22, requerido por Expo/React Native de esta versión.
+- `package-lock.json`: actualiza la resolución transitoria de `shell-quote` de 1.8.3 (bloqueada por la política de seguridad del registro) a 1.12.0. No se añadió como dependencia directa; `package.json` no cambió.
+- `CONTINUITY.md`: añade este inventario y estado.
+
+### Vistas externas y entrada a la sala
+
+- **VERIFICADO por inspección de código:** las tarjetas Home y Discover abren el diálogo; no hay regalos ni panel Lucky Gift renderizados en ese diálogo.
+- **VERIFICADO por inspección de código:** la selección de cada tarjeta Discover entrega la sala seleccionada. El diálogo usa esa sala para portada, nombre, anfitrión, oyentes, escenario y asientos.
+- **VERIFICADO por inspección de código:** `Enter room` cambia a una pantalla de sala abierta; solo esa pantalla contiene el botón Gifts.
+- **PARCIAL:** se capturó la ruta Home (`/`) en navegador; la pantalla carga y no reportó errores de app. La captura no permite pulsar tarjetas, por lo que no verifica visualmente el diálogo ni la sala abierta. Las fotos remotas de portada no aparecieron en la captura y quedan sin verificar.
+
+### Catálogo y nombres
+
+Los nombres siguientes proceden del mapa de nombres histórico de `_reference/widgets/gift_panel.dart`; en la interfaz se identifican como propuestas pendientes de aprobación. Ninguno tiene precio aprobado en el código actual. Precio de regalos normales: `null`; Lucky Gift usa el valor individual indicado por el usuario dentro del rango de producto 10–500.000 Coins, no un precio fijo de catálogo.
+
+- **Normales — 30:** `normal-rose` Rose, `normal-heart` Heart, `normal-star` Star, `normal-kiss` Kiss, `normal-hug` Hug, `normal-cake` Cake, `normal-crown` Crown, `normal-diamond` Diamond, `normal-trophy` Trophy, `normal-rocket` Rocket, `normal-fireworks` Fireworks, `normal-rainbow` Rainbow, `normal-unicorn` Unicorn, `normal-dragon` Dragon, `normal-galaxy` Galaxy, `normal-shooting-star` Shooting Star, `normal-butterfly` Butterfly, `normal-phoenix` Phoenix, `normal-golden-lion` Golden Lion, `normal-castle` Castle, `normal-spaceship` Spaceship, `normal-tornado` Tornado, `normal-supernova` Supernova, `normal-king-of-the-universe` King of the Universe, `normal-empire` Empire, `normal-legend` Legend, `normal-god-of-love` God of Love, `normal-vivra-vip` Vivra VIP, `normal-master` Master, `normal-vivra-king` Vivra King.
+- **Reembolso — 30 Lucky Gift:** `lucky-spark` Lucky Spark, `lucky-leaf` Lucky Leaf, `lucky-coin` Lucky Coin, `lucky-star` Lucky Star, `lucky-heart` Lucky Heart, `lucky-moon` Lucky Moon, `lucky-sun` Lucky Sun, `lucky-rose` Lucky Rose, `lucky-candy` Lucky Candy, `lucky-gem` Lucky Gem, `lucky-bear` Lucky Bear, `lucky-fox` Lucky Fox, `lucky-owl` Lucky Owl, `lucky-wolf` Lucky Wolf, `lucky-tiger` Lucky Tiger, `lucky-panda` Lucky Panda, `lucky-lion` Lucky Lion, `lucky-eagle` Lucky Eagle, `lucky-dragon` Lucky Dragon, `lucky-phoenix` Lucky Phoenix, `lucky-unicorn` Lucky Unicorn, `lucky-meteor` Lucky Meteor, `lucky-nova` Lucky Nova, `lucky-aurora` Lucky Aurora, `lucky-thunder` Lucky Thunder, `lucky-galaxy` Lucky Galaxy, `lucky-diamond` Lucky Diamond, `lucky-universe` Lucky Universe, `lucky-legend` Lucky Legend, `lucky-vivra` Lucky Vivra. `Reembolso` es solo el nombre de la pestaña.
+- **VERIFICADO por validación automatizada puntual:** 60 registros, 30 por tipo, 60 IDs únicos y 60 nombres únicos.
+
+### Imágenes y Lottie
+
+- **PENDIENTE:** no hay ilustraciones de regalos en `assets/`. Para cada uno de los 60 IDs listados arriba, el registro tiene `imageFileName: null`, `imagePath: null`, `imageExists: false`, `imageType: static` y `imageStatus: pending`. La cuadrícula muestra un marcador “Art pending”; no usa emojis ni afirma que existan ilustraciones individuales.
+- **PENDIENTE:** no hay recursos Lottie declarados ni archivos de animación. Los 60 registros tienen `animationType: none`, `lottiePath: null` y `lottieExists: false`. No se añadió dependencia de animación.
+- **PENDIENTE:** no se pudo comprobar carga o reproducción de Lottie. La preferencia `showGiftEffects` permanece en el tipo existente; no hay implementación de efectos en el flujo Expo actual que pudiera probarse.
+
+### Quantity, cálculos y combo
+
+- **VERIFICADO por código:** Quantity es un menú vertical con `Change quantity` dentro, `×1`, `×5`, `×10`, `×25`, `×50`, `×100` y `Manual`. Elegir una opción cierra el menú; el valor manual exige un entero de al menos 1 y no impone máximo inventado.
+- **VERIFICADO por código:** quantity representa unidades por activación. Los cálculos internos mantienen gasto = valor × destinatarios × quantity y diamantes por destinatario = 10% del valor individual por cada unidad. No se muestran `Multipliers`, `Total Cost`, `Each Recipient Gets` ni `Max Win Per Send`.
+- **VERIFICADO por código:** Send está deshabilitado y no tiene una transacción simulada. El frontend y backend siguen desconectados; no se pudo probar una segunda activación real.
+- **PARCIAL:** el código Flutter histórico `_reference/widgets/quick_gift_sender.dart` permanece intacto. Muestra un contador cliente de cinco segundos que reinicia al tocar y envía una solicitud con `quantity: 1`; el contador de envíos sube tras una respuesta exitosa. No hay implementación del combo en el frontend Expo ni código de backend en este proyecto para confirmar la duración/avance del combo del servidor o el funcionamiento de extremo a extremo.
+
+### Pruebas y bloqueos
+
+- `npm run typecheck`: **PASS**, sin errores en la ejecución final.
+- `npm run build:web`: **PASS**, Metro agrupó 2.451 módulos y Expo exportó `dist`.
+- Validación puntual de `src/data/giftCatalog.ts` con TypeScript y Node: **PASS**, 60/30/30, IDs/nombres únicos, precios e imágenes pendientes y sin referencias Lottie.
+- `git diff --check`: **PASS**.
+- `npm run lint`: **NO EJECUTADO**; Expo informó que no hay configuración ESLint y pidió crearla. No se añadió una configuración nueva fuera del alcance.
+- Pruebas automatizadas de interfaz: **NO DISPONIBLES**; `package.json` no define un script `test`.
+- Captura de navegador en `/`: **PARCIAL**, Home renderiza; las fotos remotas de portada no aparecen en la captura. No se pudo interactuar con tarjetas para abrir y revisar el diálogo, la sala o el catálogo. El log del navegador solo mostró el aviso informativo de React DevTools.
+- El primer intento de instalar dependencias fue bloqueado por el registro por `shell-quote@1.8.3`; se instaló la versión permitida 1.12.0 y después las comprobaciones finales pasaron. Expo 58 solicita Node.js 22, por eso se actualizó el módulo del repl a Node.js 22.
+
+### Estado del backend y pendientes
+
+- El backend, PostgreSQL y Socket.IO continúan sin conectarse ni modificarse en esta pasada. No hay envío real, aleatoriedad, probabilidades, límites ni cambios de saldo comprobables.
+- Pendiente: aprobación de los 60 nombres y precios que correspondan; creación y verificación individual de ilustraciones locales; decisión aprobada sobre qué regalos tendrán Lottie y sus recursos; pruebas interactivas del diálogo, sala y menú Quantity; integrar envíos y combo solo cuando el backend real y sus reglas estén disponibles.
